@@ -40,16 +40,25 @@ func initProcess() {
 		fmt.Printf("Change to root path failed: %v", err)
 	}
 
+	// setup mount points
 	mountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	if err := syscall.Mount("proc", "/proc", "proc", uintptr(mountFlags), ""); err != nil {
 		fmt.Printf("mount proc failed: %v", err)
 		return
 	}
 
+	if err := syscall.Mount("tmp", "/tmp", "tmpfs", 0, ""); err != nil {
+		fmt.Printf("mount /tmp directory failed: %v", err)
+		os.Exit(1)
+	}
+
+	// setup hostname
+	// FIXME(cizixs): use container name or auto-generate hostname
 	if err := syscall.Sethostname([]byte("container")); err != nil {
 		fmt.Printf("set hostname failed: %v", err)
 	}
 
+	// Now, it's time to run user-specified command in container
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -63,6 +72,11 @@ func initProcess() {
 	// umount proc to make host work normally
 	if err := syscall.Unmount("/proc", 0); err != nil {
 		fmt.Printf("umount proc failed: %v", err)
+		os.Exit(1)
+	}
+
+	if err := syscall.Unmount("/tmp", 0); err != nil {
+		fmt.Printf("umount /tmp failed: %v", err)
 		os.Exit(1)
 	}
 }
