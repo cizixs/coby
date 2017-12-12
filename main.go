@@ -9,7 +9,7 @@ import (
 )
 
 func run() {
-	cmd := exec.Command("/proc/self/exe", "init")
+	cmd := exec.Command("/proc/self/exe", append([]string{"init"}, os.Args[2:]...)...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUTS |
 			syscall.CLONE_NEWNS |
@@ -39,7 +39,7 @@ func initProcess() {
 		fmt.Printf("set hostname failed: %v", err)
 	}
 
-	cmd := exec.Command("bash")
+	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
