@@ -29,6 +29,17 @@ func run() {
 
 func initProcess() {
 	// initial setup, before running the real command
+
+	// use chroot to jail root file system
+	if err := syscall.Chroot("./rootfs"); err != nil {
+		fmt.Printf("Chroot failed: %v", err)
+		os.Exit(1)
+	}
+
+	if err := os.Chdir("/"); err != nil {
+		fmt.Printf("Change to root path failed: %v", err)
+	}
+
 	mountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	if err := syscall.Mount("proc", "/proc", "proc", uintptr(mountFlags), ""); err != nil {
 		fmt.Printf("mount proc failed: %v", err)
