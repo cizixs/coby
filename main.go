@@ -2,10 +2,17 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
+	"strconv"
 	"syscall"
+)
+
+const (
+	cgMemoryPath = "/sys/fs/cgroup/memory"
 )
 
 func run() {
@@ -26,7 +33,30 @@ func run() {
 		log.Fatal(err)
 	}
 
+	//setup cgroup limit for container
+	// 1. create cgroup memeory subssytem for container
 	fmt.Printf("coby init run in pid: %d\n", cmd.Process.Pid)
+	if err := os.MkdirAll(path.Join(cgMemoryPath, "coby", "container"), 0755); err != nil {
+		fmt.Printf("failed to setup memeory cgroup: %v", err)
+		os.Exit(1)
+	}
+
+	// 2. limit memeory usage
+	if err := ioutil.WriteFile(path.Join(cgMemoryPath, "coby", "container", "memory.limit_in_bytes"), []byte("100m"), 0644); err != nil {
+		fmt.Printf("failed to limit memeory usage in cgroup: %v", err)
+		os.Exit(1)
+	}
+
+	// 3. add container to cgroup
+	if err := ioutil.WriteFile(path.Join(cgMemoryPath, "coby", "container", "tasks"), []byte(strconv.Itoa(cmd.Process.Pid)), 0644); err != nil {
+		fmt.Printf("failed to add container to memeory cgroup: %v", err)
+		os.Exit(1)
+	}
+
+	defer func() {
+		os.RemoveAll(path.Join(cgMemoryPath, "coby", "container"))
+	}()
+
 	cmd.Wait()
 }
 
