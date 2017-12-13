@@ -1,2 +1,4 @@
 coby
 rootfs/
+*.orig
+*.bak

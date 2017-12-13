@@ -22,9 +22,12 @@ func run() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Printf("coby init run in pid: %d\n", cmd.Process.Pid)
+	cmd.Wait()
 }
 
 func initProcess() {
@@ -59,24 +62,14 @@ func initProcess() {
 	}
 
 	// Now, it's time to run user-specified command in container
-	cmd := exec.Command(os.Args[2], os.Args[3:]...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("run command in container failed: %v", err)
+	name, err := exec.LookPath(os.Args[2])
+	if err != nil {
+		fmt.Printf("run command in container failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	// umount proc to make host work normally
-	if err := syscall.Unmount("/proc", 0); err != nil {
-		fmt.Printf("umount proc failed: %v", err)
-		os.Exit(1)
-	}
-
-	if err := syscall.Unmount("/tmp", 0); err != nil {
-		fmt.Printf("umount /tmp failed: %v", err)
+	if err := syscall.Exec(name, os.Args[2:], os.Environ()); err != nil {
+		fmt.Printf("run command in container failed: %v\n", err)
 		os.Exit(1)
 	}
 }
